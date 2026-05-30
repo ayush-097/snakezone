@@ -8,7 +8,6 @@
 
 - **Smooth Gameplay:** Built entirely with HTML5 Canvas and Vanilla JavaScript for optimal performance.
 - **Dynamic Leaderboard:** Real-time ranking system to track your progress against opponents.
-- **Cross-Platform Controls:** Supports both mouse/keyboard for desktop and touch controls for mobile devices.
 - **Speed Boost:** Accelerate your snake to outmaneuver opponents, but be careful—it costs points!
 - **Emoji Food:** A colorful variety of emoji-based food items to consume.
 
