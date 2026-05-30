@@ -1,0 +1,419 @@
+body {
+    background-size: cover;
+}
+
+body {
+    background-color: white;
+    margin: 0px;
+    text-align: center;
+}
+
+html,
+body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden
+}
+
+html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+html {
+    overflow-y: hidden;
+}
+
+/* Game Over Popup Styles */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&display=swap');
+
+.popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at center, rgba(15, 30, 80, 0.7) 0%, rgba(5, 10, 30, 0.95) 100%);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    font-family: 'Outfit', sans-serif;
+    pointer-events: none;
+}
+
+.popup-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.popup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    transform: translateY(30px) scale(0.95);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.popup-overlay.show .popup-container {
+    transform: translateY(0) scale(1);
+}
+
+.result-header {
+    width: 100%;
+    text-align: center;
+    background: linear-gradient(90deg, transparent 0%, rgba(20, 60, 180, 0.6) 50%, transparent 100%);
+    padding: 12px 0;
+    margin-bottom: 20px;
+}
+
+.result-title {
+    font-size: 40px;
+    font-weight: 900;
+    color: #ffeb3b;
+    margin: 0;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6), 0 2px 0px #b8860b;
+    letter-spacing: 1.5px;
+    text-transform: capitalize;
+}
+
+.result-trophy {
+    position: relative;
+    margin-bottom: 20px;
+    margin-top: 10px;
+}
+
+.trophy-svg {
+    width: 160px;
+    height: 160px;
+    filter: drop-shadow(0 0 40px rgba(255, 215, 0, 0.5));
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+.trophy-badge {
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(180deg, #ffffff 0%, #fff3e0 100%);
+    border: 2px solid #ff9800;
+    border-radius: 8px;
+    padding: 4px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    min-width: 40px;
+}
+
+.trophy-badge .crown {
+    font-size: 16px;
+    margin-bottom: -2px;
+    line-height: 1;
+}
+
+.trophy-badge .rank {
+    font-size: 26px;
+    font-weight: 900;
+    color: #e65100;
+    line-height: 1.1;
+}
+
+.result-score {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.weight-svg {
+    width: 45px;
+    height: 45px;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+}
+
+.score-value {
+    font-size: 38px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+    font-feature-settings: "tnum";
+}
+
+.restart-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(180deg, #66bb6a 0%, #2e7d32 100%);
+    border: 3px solid #a5d6a7;
+    border-radius: 16px;
+    padding: 12px 36px;
+    color: #ffffff;
+    font-size: 26px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.5);
+    text-transform: capitalize;
+    transition: transform 0.15s, filter 0.2s;
+    outline: none;
+}
+
+.restart-btn:hover {
+    filter: brightness(1.15);
+    transform: scale(1.05);
+}
+
+.restart-btn:active {
+    transform: scale(0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+.restart-icon {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+/* Modern HUD styles */
+.hud-panel {
+    position: fixed;
+    background: rgba(15, 15, 25, 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 16px 20px;
+    color: #ffffff;
+    font-family: 'Outfit', sans-serif;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    z-index: 1000;
+    user-select: none;
+    pointer-events: none;
+    box-sizing: border-box;
+}
+
+.leaderboard-panel {
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    max-height: 420px;
+    display: flex;
+    flex-direction: column;
+}
+
+.leaderboard-panel h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #ff4fac;
+    text-shadow: 0 0 10px rgba(255, 79, 172, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 8px;
+    text-align: left;
+}
+
+.leaderboard-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard-row:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-rank {
+    font-weight: 600;
+    width: 30px;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: left;
+}
+
+.leaderboard-name {
+    flex-grow: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-right: 8px;
+    font-weight: 500;
+    text-align: left;
+}
+
+.leaderboard-score {
+    font-weight: 600;
+    color: #00ffcc;
+    text-align: right;
+}
+
+/* Highlight the current player */
+.leaderboard-row.player-highlight {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+.leaderboard-row.player-highlight .leaderboard-name {
+    color: #cc99ff;
+    font-weight: 700;
+}
+
+.leaderboard-row.player-highlight .leaderboard-rank {
+    color: #cc99ff;
+}
+
+.score-panel {
+    bottom: 20px;
+    left: 20px;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.score-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#score-value {
+    font-size: 36px;
+    font-weight: 800;
+    color: #00ffcc;
+    text-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+    margin: 2px 0;
+}
+
+#rank-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #cc99ff;
+}
+
+/* Mobile & Landscape Responsiveness */
+@media (max-width: 850px), (max-height: 600px) {
+    .hud-panel {
+        padding: 10px 12px;
+        border-radius: 12px;
+    }
+
+    .leaderboard-panel {
+        top: 10px;
+        right: 10px;
+        width: 180px;
+    }
+
+    .leaderboard-panel h3 {
+        font-size: 12px;
+        margin-bottom: 8px;
+    }
+
+    .leaderboard-row {
+        font-size: 10px;
+        padding: 4px 0;
+    }
+
+    .leaderboard-rank {
+        width: 20px;
+    }
+
+    .score-panel {
+        bottom: 10px;
+        left: 10px;
+        min-width: 120px;
+    }
+
+    .score-label {
+        font-size: 8px;
+    }
+
+    #score-value {
+        font-size: 24px;
+    }
+
+    #rank-value {
+        font-size: 11px;
+    }
+}
+
+/* Mobile & Landscape Popup Responsiveness */
+@media (max-width: 600px),
+(max-height: 600px) {
+    .popup-container {
+        padding: 10px;
+    }
+
+    .result-header {
+        margin-bottom: 10px;
+        padding: 8px 0;
+    }
+
+    .result-title {
+        font-size: 28px;
+    }
+
+    .result-trophy {
+        margin-bottom: 15px;
+        margin-top: 5px;
+    }
+
+    .trophy-svg {
+        width: 100px;
+        height: 100px;
+    }
+
+    .trophy-badge {
+        padding: 2px 8px;
+        min-width: 30px;
+    }
+
+    .trophy-badge .crown {
+        font-size: 12px;
+    }
+
+    .trophy-badge .rank {
+        font-size: 18px;
+    }
+
+    .result-score {
+        margin-bottom: 15px;
+        gap: 10px;
+    }
+
+    .score-value {
+        font-size: 32px;
+    }
+
+    .restart-btn {
+        padding: 10px 24px;
+        font-size: 20px;
+        border-radius: 12px;
+    }
+
+    .restart-icon {
+        font-size: 22px;
+    }
+}
