@@ -103,6 +103,25 @@ class game {
         `;
         document.body.appendChild(lbPanel);
 
+        // Create Mobile Controls
+        const mobileControls = document.createElement("div");
+        mobileControls.className = "mobile-controls";
+        mobileControls.innerHTML = `
+            <div class="joystick-zone" id="joystick-zone">
+                <div class="joystick-base">
+                    <div class="joystick-knob" id="joystick-knob"></div>
+                </div>
+            </div>
+            <div class="boost-zone" id="boost-zone">
+                <div class="boost-btn" id="boost-btn">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 2L4.5 13H12L11 22L19.5 11H12L13 2Z" fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(mobileControls);
+
         this.render();
 
         for (let i = 0; i < Nsnake; i++)
@@ -116,9 +135,14 @@ class game {
 
         this.listenMouse();
         this.listenTouch();
+        this.initMobileControls();
     }
 
     listenTouch() {
+        // On devices with mobile controls (coarse pointer), skip the old full-screen touch handlers
+        const isTouchDevice = window.matchMedia('(pointer: coarse)').matches;
+        if (isTouchDevice) return;
+
         document.addEventListener("touchmove", evt => {
             var y = evt.touches[0].pageY;
             var x = evt.touches[0].pageX;
@@ -158,6 +182,103 @@ class game {
             var y = evt.offsetY == undefined ? evt.layerY : evt.offsetY;
             mySnake[0].speed = 1;
         })
+    }
+
+    initMobileControls() {
+        const joystickZone = document.getElementById('joystick-zone');
+        const joystickKnob = document.getElementById('joystick-knob');
+        const boostBtn = document.getElementById('boost-btn');
+        if (!joystickZone || !joystickKnob || !boostBtn) return;
+
+        let joystickTouchId = null;
+        let boostTouchId = null;
+        const joystickMaxDist = 40;
+
+        // --- Joystick ---
+        joystickZone.addEventListener('touchstart', (evt) => {
+            evt.preventDefault();
+            evt.stopPropagation();
+            if (joystickTouchId !== null) return;
+            const touch = evt.changedTouches[0];
+            joystickTouchId = touch.identifier;
+            joystickKnob.classList.add('active');
+            this.handleJoystickMove(touch, joystickZone, joystickKnob, joystickMaxDist);
+        }, { passive: false });
+
+        joystickZone.addEventListener('touchmove', (evt) => {
+            evt.preventDefault();
+            evt.stopPropagation();
+            for (let i = 0; i < evt.changedTouches.length; i++) {
+                if (evt.changedTouches[i].identifier === joystickTouchId) {
+                    this.handleJoystickMove(evt.changedTouches[i], joystickZone, joystickKnob, joystickMaxDist);
+                    break;
+                }
+            }
+        }, { passive: false });
+
+        const resetJoystick = (evt) => {
+            for (let i = 0; i < evt.changedTouches.length; i++) {
+                if (evt.changedTouches[i].identifier === joystickTouchId) {
+                    joystickTouchId = null;
+                    joystickKnob.classList.remove('active');
+                    joystickKnob.style.transform = 'translate(-50%, -50%)';
+                    // Don't reset chX/chY so snake keeps moving in last direction
+                    break;
+                }
+            }
+        };
+        joystickZone.addEventListener('touchend', resetJoystick, { passive: false });
+        joystickZone.addEventListener('touchcancel', resetJoystick, { passive: false });
+
+        // --- Boost Button ---
+        boostBtn.addEventListener('touchstart', (evt) => {
+            evt.preventDefault();
+            evt.stopPropagation();
+            if (boostTouchId !== null) return;
+            boostTouchId = evt.changedTouches[0].identifier;
+            boostBtn.classList.add('active');
+            if (mySnake[0]) mySnake[0].speed = 2;
+        }, { passive: false });
+
+        const resetBoost = (evt) => {
+            for (let i = 0; i < evt.changedTouches.length; i++) {
+                if (evt.changedTouches[i].identifier === boostTouchId) {
+                    boostTouchId = null;
+                    boostBtn.classList.remove('active');
+                    if (mySnake[0]) mySnake[0].speed = 1;
+                    break;
+                }
+            }
+        };
+        boostBtn.addEventListener('touchend', resetBoost, { passive: false });
+        boostBtn.addEventListener('touchcancel', resetBoost, { passive: false });
+    }
+
+    handleJoystickMove(touch, zone, knob, maxDist) {
+        const rect = zone.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        let dx = touch.clientX - centerX;
+        let dy = touch.clientY - centerY;
+
+        // Clamp to max distance
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist > maxDist) {
+            dx = (dx / dist) * maxDist;
+            dy = (dy / dist) * maxDist;
+        }
+
+        // Move the knob visually
+        knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+
+        // Normalize and set direction (scale to match MaxSpeed range)
+        const normDist = Math.min(dist, maxDist) / maxDist;
+        if (normDist > 0.1) {
+            const angle = Math.atan2(dy, dx);
+            chX = Math.cos(angle) * MaxSpeed * normDist;
+            chY = Math.sin(angle) * MaxSpeed * normDist;
+        }
     }
 
     loop() {
@@ -376,7 +497,9 @@ class game {
         const listEl = document.getElementById("leaderboard-list");
         if (listEl) {
             let html = "";
-            for (let i = 0; i < Math.min(10, data.length); i++) {
+            const isMobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth <= 850;
+            const limit = isMobile ? 5 : 10;
+            for (let i = 0; i < Math.min(limit, data.length); i++) {
                 const isPlayer = data[i].name === "Youhh";
                 html += `
                     <div class="leaderboard-row ${isPlayer ? 'player-highlight' : ''}">
