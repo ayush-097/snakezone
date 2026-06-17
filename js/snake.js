@@ -72,6 +72,11 @@ class snake {
             targetDist = this.size / 7.5; // Tighter packing when boosting to make length decrease visually
         }
 
+        this.minX = this.v[0].x;
+        this.maxX = this.v[0].x;
+        this.minY = this.v[0].y;
+        this.maxY = this.v[0].y;
+        
         for (let i = 1; i < this.v.length; i++) {
             let dist = this.range(this.v[i], this.v[i - 1]);
             if (dist > targetDist) {
@@ -79,12 +84,16 @@ class snake {
                 this.v[i].x = this.v[i - 1].x + (this.v[i].x - this.v[i - 1].x) * ratio;
                 this.v[i].y = this.v[i - 1].y + (this.v[i].y - this.v[i - 1].y) * ratio;
             }
+            if (this.v[i].x < this.minX) this.minX = this.v[i].x;
+            if (this.v[i].x > this.maxX) this.maxX = this.v[i].x;
+            if (this.v[i].y < this.minY) this.minY = this.v[i].y;
+            if (this.v[i].y > this.maxY) this.maxY = this.v[i].y;
         }
 
         if (this.speed == 2 && this.score > 100) {
             let lostVal = Math.max(0.5, this.score / 200);
             this.score -= lostVal;
-            
+
             // Accumulate and drop food every 5 frames
             this.dropCounter = (this.dropCounter || 0) + 1;
             if (this.dropCounter >= 5) {

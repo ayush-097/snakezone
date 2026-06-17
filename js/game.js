@@ -1,7 +1,20 @@
 game_W = 0, game_H = 0;
 
 var bg_im = new Image();
+var cached_bg = null;
+function initCachedBg() {
+    if (typeof isMobileDevice !== 'undefined' && isMobileDevice && bg_im.width > 0 && !cached_bg) {
+        cached_bg = document.createElement('canvas');
+        cached_bg.width = bg_im.width / 2;
+        cached_bg.height = bg_im.height / 2;
+        let ctx = cached_bg.getContext('2d');
+        // Disable smoothing on the downscale for a sharper look if desired, or keep it default
+        ctx.drawImage(bg_im, 0, 0, cached_bg.width, cached_bg.height);
+    }
+}
+bg_im.onload = initCachedBg;
 bg_im.src = "images/Map2.png";
+if (bg_im.complete) initCachedBg();
 SPEED = 1;
 MaxSpeed = 0;
 chX = chY = 1;
@@ -93,7 +106,7 @@ class game {
 
     init() {
         this.canvas = document.createElement("canvas");
-        this.context = this.canvas.getContext("2d", { alpha: false });
+        this.context = this.canvas.getContext("2d", { alpha: true });
         document.body.appendChild(this.canvas);
 
         // Create Leaderboard panel
@@ -399,6 +412,16 @@ class game {
                 if (i != j) {
                     let kt = true;
                     let otherSnake = mySnake[j];
+                    
+                    let dxB = headX - (otherSnake.minX + otherSnake.maxX) / 2;
+                    let dyB = headY - (otherSnake.minY + otherSnake.maxY) / 2;
+                    let widthB = (otherSnake.maxX - otherSnake.minX) / 2 + headSize;
+                    let heightB = (otherSnake.maxY - otherSnake.minY) / 2 + headSize;
+                    
+                    if (Math.abs(dxB) > widthB || Math.abs(dyB) > heightB) {
+                        continue;
+                    }
+                    
                     for (let k = 0; k < otherSnake.v.length; k++) {
                         let seg = otherSnake.v[k];
                         let dx = headX - seg.x;
@@ -603,7 +626,18 @@ class game {
     clearScreen() {
         this.context.clearRect(0, 0, game_W, game_H);
         let scale = 80 / this.getSize();
-        this.context.drawImage(bg_im, Xfocus, Yfocus, 1.5 * game_W * scale, 1.5 * game_H * scale, 0, 0, game_W, game_H);
+        let sourceImg = bg_im;
+        let sx = Xfocus, sy = Yfocus, sw = 1.5 * game_W * scale, sh = 1.5 * game_H * scale;
+
+        if (typeof isMobileDevice !== 'undefined' && isMobileDevice && cached_bg) {
+            sourceImg = cached_bg;
+            sx /= 2;
+            sy /= 2;
+            sw /= 2;
+            sh /= 2;
+        }
+
+        this.context.drawImage(sourceImg, sx, sy, sw, sh, 0, 0, game_W, game_H);
     }
 
     getSize() {
