@@ -7,8 +7,11 @@ MaxSpeed = 0;
 chX = chY = 1;
 mySnake = [];
 FOOD = [];
-NFood = 2000;
-Nsnake = 20;
+
+// Detect mobile to reduce rendering load
+var isMobileDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
+NFood = isMobileDevice ? 800 : 2000;
+Nsnake = isMobileDevice ? 10 : 20;
 sizeMap = 2000;
 index = 0;
 minScore = 200;
@@ -90,7 +93,7 @@ class game {
 
     init() {
         this.canvas = document.createElement("canvas");
-        this.context = this.canvas.getContext("2d");
+        this.context = this.canvas.getContext("2d", { alpha: false });
         document.body.appendChild(this.canvas);
 
         // Create Leaderboard panel
@@ -281,12 +284,23 @@ class game {
         }
     }
 
-    loop() {
+    loop(timestamp) {
         if (die)
             return;
-        this.update();
-        this.draw();
-        setTimeout(() => this.loop(), 30);
+
+        requestAnimationFrame((t) => this.loop(t));
+
+        if (!this.lastFrameTime) {
+            this.lastFrameTime = timestamp || performance.now();
+        }
+        let elapsed = (timestamp || performance.now()) - this.lastFrameTime;
+
+        // Target ~30 frames per second (approx. 33.3ms per frame)
+        if (elapsed >= 33) {
+            this.lastFrameTime = (timestamp || performance.now()) - (elapsed % 33);
+            this.update();
+            this.draw();
+        }
     }
 
     update() {
@@ -328,41 +342,76 @@ class game {
     }
 
     changeFood() {
-        for (let i = 0; i < FOOD.length; i++)
-            if (Math.sqrt((mySnake[0].v[0].x - FOOD[i].x) * (mySnake[0].v[0].x - FOOD[i].x) + (mySnake[0].v[0].y - FOOD[i].y) * (mySnake[0].v[0].y - FOOD[i].y)) > sizeMap) {
-                FOOD[i] = new food(this, this.getSize() / (10 + Math.random() * 10), (Math.random() - Math.random()) * sizeMap + mySnake[0].v[0].x, (Math.random() - Math.random()) * sizeMap + mySnake[0].v[0].y);
-                // console.log(FOOD[i]);
+        let head = mySnake[0].v[0];
+        let sizeMapSq = sizeMap * sizeMap;
+        for (let i = 0; i < FOOD.length; i++) {
+            let dx = head.x - FOOD[i].x;
+            let dy = head.y - FOOD[i].y;
+            if (dx * dx + dy * dy > sizeMapSq) {
+                FOOD[i] = new food(this, this.getSize() / (10 + Math.random() * 10), (Math.random() - Math.random()) * sizeMap + head.x, (Math.random() - Math.random()) * sizeMap + head.y);
             }
+        }
     }
 
     changeSnake() {
-        for (let i = 0; i < mySnake.length; i++)
-            if (Math.sqrt((mySnake[0].v[0].x - mySnake[i].v[0].x) * (mySnake[0].v[0].x - mySnake[i].v[0].x) + (mySnake[0].v[0].y - mySnake[i].v[0].y) * (mySnake[0].v[0].y - mySnake[i].v[0].y)) > sizeMap) {
-                mySnake[i].v[0].x = (mySnake[0].v[0].x + mySnake[i].v[0].x) / 2;
-                mySnake[i].v[0].y = (mySnake[0].v[0].y + mySnake[i].v[0].y) / 2;
+        let head = mySnake[0].v[0];
+        let sizeMapSq = sizeMap * sizeMap;
+        for (let i = 0; i < mySnake.length; i++) {
+            let dx = head.x - mySnake[i].v[0].x;
+            let dy = head.y - mySnake[i].v[0].y;
+            if (dx * dx + dy * dy > sizeMapSq) {
+                mySnake[i].v[0].x = (head.x + mySnake[i].v[0].x) / 2;
+                mySnake[i].v[0].y = (head.y + mySnake[i].v[0].y) / 2;
             }
+        }
     }
 
     unFood() {
         if (mySnake.length <= 0)
             return;
-        for (let i = 0; i < mySnake.length; i++)
+        for (let i = 0; i < mySnake.length; i++) {
+            let head = mySnake[i].v[0];
+            let limit = 1.5 * mySnake[i].size;
+            let limitSq = limit * limit;
             for (let j = 0; j < FOOD.length; j++) {
-                if ((mySnake[i].v[0].x - FOOD[j].x) * (mySnake[i].v[0].x - FOOD[j].x) + (mySnake[i].v[0].y - FOOD[j].y) * (mySnake[i].v[0].y - FOOD[j].y) < 1.5 * mySnake[i].size * mySnake[i].size) {
-                    mySnake[i].score += Math.floor(FOOD[j].value);
-                    FOOD[j] = new food(this, this.getSize() / (5 + Math.random() * 10), (Math.random() - Math.random()) * 5000 + XX, (Math.random() - Math.random()) * 5000 + YY);
+                let f = FOOD[j];
+                let dx = head.x - f.x;
+                if (Math.abs(dx) < limit) {
+                    let dy = head.y - f.y;
+                    if (Math.abs(dy) < limit) {
+                        if (dx * dx + dy * dy < limitSq) {
+                            mySnake[i].score += Math.floor(f.value);
+                            FOOD[j] = new food(this, this.getSize() / (5 + Math.random() * 10), (Math.random() - Math.random()) * 5000 + XX, (Math.random() - Math.random()) * 5000 + YY);
+                        }
+                    }
                 }
             }
+        }
     }
 
     checkDie() {
-        for (let i = 0; i < mySnake.length; i++)
-            for (let j = 0; j < mySnake.length; j++)
+        for (let i = 0; i < mySnake.length; i++) {
+            let headX = mySnake[i].v[0].x;
+            let headY = mySnake[i].v[0].y;
+            let headSize = mySnake[i].size;
+            let headSizeSq = headSize * headSize;
+            for (let j = 0; j < mySnake.length; j++) {
                 if (i != j) {
                     let kt = true;
-                    for (let k = 0; k < mySnake[j].v.length; k++)
-                        if (this.range(mySnake[i].v[0].x, mySnake[i].v[0].y, mySnake[j].v[k].x, mySnake[j].v[k].y) < mySnake[i].size)
-                            kt = false;
+                    let otherSnake = mySnake[j];
+                    for (let k = 0; k < otherSnake.v.length; k++) {
+                        let seg = otherSnake.v[k];
+                        let dx = headX - seg.x;
+                        if (Math.abs(dx) < headSize) {
+                            let dy = headY - seg.y;
+                            if (Math.abs(dy) < headSize) {
+                                if (dx * dx + dy * dy < headSizeSq) {
+                                    kt = false;
+                                    break;
+                                }
+                            }
+                        }
+                    }
                     if (!kt) {
                         for (let k = 0; k < mySnake[i].v.length; k += 5) {
                             FOOD[index] = new food(this, this.getSize() / (2 + Math.random() * 2), mySnake[i].v[k].x + Math.random() * mySnake[i].size / 2, mySnake[i].v[k].y + Math.random() * mySnake[i].size / 2);
@@ -370,9 +419,9 @@ class game {
                             if (index >= FOOD.length)
                                 index = 0;
                         }
-                        if (i != 0)
+                        if (i != 0) {
                             mySnake[i] = new snake(names[Math.floor(Math.random() * 99999) % names.length], this, Math.max(Math.floor((mySnake[0].score > 10 * minScore) ? mySnake[0].score / 10 : minScore), mySnake[i].score / 10), this.randomXY(XX), this.randomXY(YY));
-                        else {
+                        } else {
                             die = true;
                             const finalScore = Math.floor(mySnake[i].score);
 
@@ -433,26 +482,37 @@ class game {
                                 window.location.href = ".";
                             });
                         }
+                        break;
                     }
                 }
+            }
+        }
     }
 
     render() {
         const clientWidth = document.documentElement.clientWidth;
         const clientHeight = document.documentElement.clientHeight;
-        const dpr = window.devicePixelRatio || 1;
+        // Cap DPI at 1.5 on mobile to avoid rendering 4-9x pixels per frame
+        const rawDpr = window.devicePixelRatio || 1;
+        const dpr = isMobileDevice ? Math.min(rawDpr, 1.5) : rawDpr;
 
-        if (this.canvas.width != clientWidth * dpr || this.canvas.height != clientHeight * dpr) {
-            this.canvas.width = clientWidth * dpr;
-            this.canvas.height = clientHeight * dpr;
+        if (this.canvas.width != Math.round(clientWidth * dpr) || this.canvas.height != Math.round(clientHeight * dpr)) {
+            this.canvas.width = Math.round(clientWidth * dpr);
+            this.canvas.height = Math.round(clientHeight * dpr);
             this.canvas.style.width = clientWidth + "px";
             this.canvas.style.height = clientHeight + "px";
 
-            this.context.setTransform(1, 0, 0, 1, 0, 0); // Reset scale transform
-            this.context.scale(dpr, dpr); // Scale context for high-DPI sharpness
+            this.context.setTransform(1, 0, 0, 1, 0, 0);
+            this.context.scale(dpr, dpr);
 
             game_W = clientWidth;
             game_H = clientHeight;
+
+            // Precompute and cache size
+            var area = game_W * game_H;
+            var baseSize = Math.sqrt(area / 300);
+            this.currentSize = Math.max(65, baseSize);
+
             SPEED = this.getSize() / 7;
             SPEED = 1;
             MaxSpeed = this.getSize() / 7;
@@ -467,8 +527,18 @@ class game {
 
     draw() {
         this.clearScreen();
-        for (let i = 0; i < FOOD.length; i++)
-            FOOD[i].draw();
+        // Pre-calculate visible bounds to skip offscreen items without function call overhead
+        let margin = 3 * this.getSize();
+        let visMinX = XX - margin;
+        let visMaxX = XX + game_W + margin;
+        let visMinY = YY - margin;
+        let visMaxY = YY + game_H + margin;
+
+        for (let i = 0; i < FOOD.length; i++) {
+            let f = FOOD[i];
+            if (f.x > visMinX && f.x < visMaxX && f.y > visMinY && f.y < visMaxY)
+                f.draw();
+        }
         for (let i = 0; i < mySnake.length; i++)
             mySnake[i].draw();
         this.drawScore();
@@ -492,6 +562,13 @@ class game {
                 break;
             }
         }
+
+        // Only update DOM elements once every 10 frames (~300ms) to prevent expensive page reflows/layout repaints
+        this.domUpdateCounter = (this.domUpdateCounter || 0) + 1;
+        if (this.domUpdateCounter < 10) {
+            return;
+        }
+        this.domUpdateCounter = 0;
 
         // Update Score Panel
         const scoreEl = document.getElementById("score-value");
@@ -530,9 +607,12 @@ class game {
     }
 
     getSize() {
-        var area = game_W * game_H;
-        var baseSize = Math.sqrt(area / 300);
-        return Math.max(65, baseSize);
+        if (this.currentSize === undefined) {
+            var area = game_W * game_H;
+            var baseSize = Math.sqrt(area / 300);
+            this.currentSize = Math.max(65, baseSize);
+        }
+        return this.currentSize;
     }
 
     range(a, b, c, d) {
@@ -548,14 +628,11 @@ class game {
     }
 
     isPoint(x, y) {
-        if (x - XX < -3 * this.getSize())
-            return false;
-        if (y - YY < -3 * this.getSize())
-            return false;
-        if (x - XX > game_W + 3 * this.getSize())
-            return false;
-        if (y - YY > game_H + 3 * this.getSize())
-            return false;
+        let size3 = 3 * this.getSize();
+        let dx = x - XX;
+        if (dx < -size3 || dx > game_W + size3) return false;
+        let dy = y - YY;
+        if (dy < -size3 || dy > game_H + size3) return false;
         return true;
     }
 }
