@@ -1,9 +1,12 @@
 const ArrEmoji = ["🍎", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍆", "🥑", "🥦", "🥬", "🥒", "🌽", "🥕", "🍞", "🧀", "🍳", "🥓", "🥩", "🍗", "🌭", "🍔", "🍟", "🍕", "🥪", "🌮", "🌯", "🍩", "🍪", "🍰", "🧁", "🥧", "🍫", "🍬", "🍭", "🍮", "🍯"];
 const EmojiCache = {};
 
+// Use smaller emoji textures on Android to reduce GPU memory and drawImage cost
+const EMOJI_CACHE_SIZE = /android/i.test(navigator.userAgent) ? 64 : 128;
+
 function getCachedEmojiCanvas(emoji) {
     if (!EmojiCache[emoji]) {
-        const size = 128; // High resolution size for the offscreen buffer
+        const size = EMOJI_CACHE_SIZE;
         const canvas = document.createElement('canvas');
         canvas.width = size;
         canvas.height = size;

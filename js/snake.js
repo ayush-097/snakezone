@@ -23,7 +23,36 @@ class snake {
         this.sn_im = new Image();
         this.sn_im.src = "images/transparent-face.png";
         this.bd_im = new Image();
-        this.bd_im.src = "images/body/" + Math.floor(Math.random() * 999999) % Nball + ".png";
+        var bodyFile = "images/body/" + Math.floor(Math.random() * 999999) % Nball + ".png";
+        this.bd_im.src = bodyFile;
+
+        // Pre-render body and head images to offscreen canvases for faster drawing
+        this.bodyCached = null;
+        this.headCached = null;
+        this.bd_im.onload = () => {
+            this.bodyCached = document.createElement('canvas');
+            this.bodyCached.width = this.bd_im.naturalWidth;
+            this.bodyCached.height = this.bd_im.naturalHeight;
+            this.bodyCached.getContext('2d').drawImage(this.bd_im, 0, 0);
+        };
+        this.sn_im.onload = () => {
+            this.headCached = document.createElement('canvas');
+            this.headCached.width = this.sn_im.naturalWidth;
+            this.headCached.height = this.sn_im.naturalHeight;
+            this.headCached.getContext('2d').drawImage(this.sn_im, 0, 0);
+        };
+        if (this.bd_im.complete && this.bd_im.naturalWidth) {
+            this.bodyCached = document.createElement('canvas');
+            this.bodyCached.width = this.bd_im.naturalWidth;
+            this.bodyCached.height = this.bd_im.naturalHeight;
+            this.bodyCached.getContext('2d').drawImage(this.bd_im, 0, 0);
+        }
+        if (this.sn_im.complete && this.sn_im.naturalWidth) {
+            this.headCached = document.createElement('canvas');
+            this.headCached.width = this.sn_im.naturalWidth;
+            this.headCached.height = this.sn_im.naturalHeight;
+            this.headCached.getContext('2d').drawImage(this.sn_im, 0, 0);
+        }
     }
 
     update() {
@@ -114,15 +143,22 @@ class snake {
     draw() {
         this.update();
 
-        for (let i = this.v.length - 1; i >= 1; i--)
-            if (this.game.isPoint(this.v[i].x, this.v[i].y))
-                this.game.context.drawImage(this.bd_im, this.v[i].x - XX - (this.size) / 2, this.v[i].y - YY - (this.size) / 2, this.size, this.size);
+        let bodyImg = this.bodyCached || this.bd_im;
+        let headImg = this.headCached || this.sn_im;
+        let ctx = this.game.context;
+        let halfSize = this.size / 2;
 
-        this.game.context.save();
-        this.game.context.translate(this.v[0].x - XX, this.v[0].y - YY);
-        this.game.context.rotate(this.angle - Math.PI / 2);
-        this.game.context.drawImage(this.sn_im, -this.size / 2, -this.size / 2, this.size, this.size);
-        this.game.context.restore();
+        // On Android, skip every other body segment to halve drawImage calls
+        let step = isAndroid ? 2 : 1;
+        for (let i = this.v.length - 1; i >= 1; i -= step)
+            if (this.game.isPoint(this.v[i].x, this.v[i].y))
+                ctx.drawImage(bodyImg, this.v[i].x - XX - halfSize, this.v[i].y - YY - halfSize, this.size, this.size);
+
+        ctx.save();
+        ctx.translate(this.v[0].x - XX, this.v[0].y - YY);
+        ctx.rotate(this.angle - Math.PI / 2);
+        ctx.drawImage(headImg, -halfSize, -halfSize, this.size, this.size);
+        ctx.restore();
     }
 
     getAngle(a, b) {
