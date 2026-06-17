@@ -67,25 +67,48 @@ class snake {
         this.v[0].x += this.dx * this.speed;
         this.v[0].y += this.dy * this.speed;
 
+        let targetDist = this.size / 5;
+        if (this.speed == 2) {
+            targetDist = this.size / 7.5; // Tighter packing when boosting to make length decrease visually
+        }
+
         for (let i = 1; i < this.v.length; i++) {
-            if (this.range(this.v[i], this.v[i - 1]) > this.size / 5) {
-                this.v[i].x = (this.v[i].x + this.v[i - 1].x) / 2;
-                this.v[i].y = (this.v[i].y + this.v[i - 1].y) / 2;
-                this.v[i].x = (this.v[i].x + this.v[i - 1].x) / 2;
-                this.v[i].y = (this.v[i].y + this.v[i - 1].y) / 2;
+            let dist = this.range(this.v[i], this.v[i - 1]);
+            if (dist > targetDist) {
+                let ratio = targetDist / (dist || 0.001);
+                this.v[i].x = this.v[i - 1].x + (this.v[i].x - this.v[i - 1].x) * ratio;
+                this.v[i].y = this.v[i - 1].y + (this.v[i].y - this.v[i - 1].y) * ratio;
             }
         }
-        if (this.score < 200)
-            return;
-        if (this.speed == 2)
-            this.score -= this.score / 2000;;
-        let csUp = Math.pow((this.score) / 1000, 1 / 5);
+
+        if (this.speed == 2 && this.score > 100) {
+            let lostVal = Math.max(0.5, this.score / 200);
+            this.score -= lostVal;
+            
+            // Accumulate and drop food every 5 frames
+            this.dropCounter = (this.dropCounter || 0) + 1;
+            if (this.dropCounter >= 5) {
+                this.dropCounter = 0;
+                let tail = this.v[this.v.length - 1];
+                if (tail && window.FOOD) {
+                    window.FOOD[window.index] = new food(this.game, this.game.getSize() / 10, tail.x, tail.y);
+                    window.FOOD[window.index].value = lostVal * 5;
+                    window.index++;
+                    if (window.index >= window.FOOD.length)
+                        window.index = 0;
+                }
+            }
+        }
+
+        let displayScore = Math.max(100, this.score);
+        let csUp = Math.pow(displayScore / 1000, 1 / 5);
         this.size = this.game.getSize() / 2 * csUp;
-        let N = 3 * Math.floor(50 * Math.pow((this.score) / 1000, 1 / 1));
+        let N = 3 * Math.floor(50 * Math.pow(displayScore / 1000, 1 / 1));
         if (N > this.v.length) {
             this.v[this.v.length] = { x: this.v[this.v.length - 1].x, y: this.v[this.v.length - 1].y };
-        } else
+        } else {
             this.v = this.v.slice(0, N);
+        }
     }
 
     draw() {

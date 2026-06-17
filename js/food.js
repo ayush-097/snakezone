@@ -34,10 +34,11 @@ class food {
 
     draw() {
         if (this.game.isPoint(this.x, this.y)) {
-            const cx = this.x - this.size / 4 - XX;
-            const cy = this.y - this.size / 4 - YY;
-            const r = this.size / 2;
-            this.game.context.drawImage(this.cachedCanvas, cx - r, cy - r, this.size, this.size);
+            const visualSize = this.size * 2.0; // Make food emoji 2x bigger
+            const cx = this.x - XX;
+            const cy = this.y - YY;
+            const r = visualSize / 2;
+            this.game.context.drawImage(this.cachedCanvas, cx - r, cy - r, visualSize, visualSize);
         }
     }
 }

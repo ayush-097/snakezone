@@ -438,11 +438,21 @@ class game {
     }
 
     render() {
-        if (this.canvas.width != document.documentElement.clientWidth || this.canvas.height != document.documentElement.clientHeight) {
-            this.canvas.width = document.documentElement.clientWidth;
-            this.canvas.height = document.documentElement.clientHeight;
-            game_W = this.canvas.width;
-            game_H = this.canvas.height;
+        const clientWidth = document.documentElement.clientWidth;
+        const clientHeight = document.documentElement.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
+
+        if (this.canvas.width != clientWidth * dpr || this.canvas.height != clientHeight * dpr) {
+            this.canvas.width = clientWidth * dpr;
+            this.canvas.height = clientHeight * dpr;
+            this.canvas.style.width = clientWidth + "px";
+            this.canvas.style.height = clientHeight + "px";
+
+            this.context.setTransform(1, 0, 0, 1, 0, 0); // Reset scale transform
+            this.context.scale(dpr, dpr); // Scale context for high-DPI sharpness
+
+            game_W = clientWidth;
+            game_H = clientHeight;
             SPEED = this.getSize() / 7;
             SPEED = 1;
             MaxSpeed = this.getSize() / 7;
@@ -515,12 +525,14 @@ class game {
 
     clearScreen() {
         this.context.clearRect(0, 0, game_W, game_H);
-        this.context.drawImage(bg_im, Xfocus, Yfocus, 1.5 * game_W, 1.5 * game_H, 0, 0, game_W, game_H);
+        let scale = 80 / this.getSize();
+        this.context.drawImage(bg_im, Xfocus, Yfocus, 1.5 * game_W * scale, 1.5 * game_H * scale, 0, 0, game_W, game_H);
     }
 
     getSize() {
         var area = game_W * game_H;
-        return Math.sqrt(area / 300);
+        var baseSize = Math.sqrt(area / 300);
+        return Math.max(65, baseSize);
     }
 
     range(a, b, c, d) {
