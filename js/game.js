@@ -10,9 +10,8 @@ FOOD = [];
 
 // Detect mobile to reduce rendering load
 var isMobileDevice = window.matchMedia('(pointer: coarse)').matches || ('ontouchstart' in window);
-var isAndroid = /android/i.test(navigator.userAgent);
-NFood = isMobileDevice ? (isAndroid ? 400 : 600) : 2000;
-Nsnake = isMobileDevice ? (isAndroid ? 5 : 8) : 20;
+NFood = isMobileDevice ? 800 : 2000;
+Nsnake = isMobileDevice ? 10 : 20;
 sizeMap = 2000;
 index = 0;
 minScore = 200;
@@ -94,25 +93,8 @@ class game {
 
     init() {
         this.canvas = document.createElement("canvas");
-        this.context = this.canvas.getContext("2d", { alpha: false, desynchronized: true });
+        this.context = this.canvas.getContext("2d", { alpha: false });
         document.body.appendChild(this.canvas);
-
-        // Pre-render background to an offscreen canvas at reduced resolution for mobile
-        this.bgCanvas = null;
-        this.bgReady = false;
-        if (isMobileDevice) {
-            bg_im.onload = () => {
-                const scale = isAndroid ? 0.35 : 0.5;
-                this.bgCanvas = document.createElement('canvas');
-                this.bgCanvas.width = Math.round(bg_im.width * scale);
-                this.bgCanvas.height = Math.round(bg_im.height * scale);
-                const bgCtx = this.bgCanvas.getContext('2d');
-                bgCtx.drawImage(bg_im, 0, 0, this.bgCanvas.width, this.bgCanvas.height);
-                this.bgScale = scale;
-                this.bgReady = true;
-            };
-            if (bg_im.complete) bg_im.onload();
-        }
 
         // Create Leaderboard panel
         const lbPanel = document.createElement("div");
@@ -313,10 +295,9 @@ class game {
         }
         let elapsed = (timestamp || performance.now()) - this.lastFrameTime;
 
-        // Target ~24fps on Android, ~30fps elsewhere to reduce GPU load
-        const frameInterval = isAndroid ? 42 : 33;
-        if (elapsed >= frameInterval) {
-            this.lastFrameTime = (timestamp || performance.now()) - (elapsed % frameInterval);
+        // Target ~30 frames per second (approx. 33.3ms per frame)
+        if (elapsed >= 33) {
+            this.lastFrameTime = (timestamp || performance.now()) - (elapsed % 33);
             this.update();
             this.draw();
         }
@@ -511,9 +492,9 @@ class game {
     render() {
         const clientWidth = document.documentElement.clientWidth;
         const clientHeight = document.documentElement.clientHeight;
-        // Cap DPI at 1.0 on Android (huge perf win), 1.5 on other mobile
+        // Cap DPI at 1.5 on mobile to avoid rendering 4-9x pixels per frame
         const rawDpr = window.devicePixelRatio || 1;
-        const dpr = isAndroid ? 1.0 : (isMobileDevice ? Math.min(rawDpr, 1.5) : rawDpr);
+        const dpr = isMobileDevice ? Math.min(rawDpr, 1.5) : rawDpr;
 
         if (this.canvas.width != Math.round(clientWidth * dpr) || this.canvas.height != Math.round(clientHeight * dpr)) {
             this.canvas.width = Math.round(clientWidth * dpr);
@@ -553,16 +534,10 @@ class game {
         let visMinY = YY - margin;
         let visMaxY = YY + game_H + margin;
 
-        // On Android, batch all food drawImage calls together to reduce GPU state changes
-        let ctx = this.context;
         for (let i = 0; i < FOOD.length; i++) {
             let f = FOOD[i];
-            if (f.x > visMinX && f.x < visMaxX && f.y > visMinY && f.y < visMaxY) {
-                // Inline the draw to avoid function call overhead on low-end devices
-                let visualSize = f.size * 2.0;
-                let r = visualSize / 2;
-                ctx.drawImage(f.cachedCanvas, f.x - XX - r, f.y - YY - r, visualSize, visualSize);
-            }
+            if (f.x > visMinX && f.x < visMaxX && f.y > visMinY && f.y < visMaxY)
+                f.draw();
         }
         for (let i = 0; i < mySnake.length; i++)
             mySnake[i].draw();
@@ -626,14 +601,9 @@ class game {
     }
 
     clearScreen() {
+        this.context.clearRect(0, 0, game_W, game_H);
         let scale = 80 / this.getSize();
-        if (this.bgReady && this.bgCanvas) {
-            // Use pre-scaled background on mobile to avoid sampling a 1.5MB texture every frame
-            let s = this.bgScale;
-            this.context.drawImage(this.bgCanvas, Xfocus * s, Yfocus * s, 1.5 * game_W * scale * s, 1.5 * game_H * scale * s, 0, 0, game_W, game_H);
-        } else {
-            this.context.drawImage(bg_im, Xfocus, Yfocus, 1.5 * game_W * scale, 1.5 * game_H * scale, 0, 0, game_W, game_H);
-        }
+        this.context.drawImage(bg_im, Xfocus, Yfocus, 1.5 * game_W * scale, 1.5 * game_H * scale, 0, 0, game_W, game_H);
     }
 
     getSize() {
